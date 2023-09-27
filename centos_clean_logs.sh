@@ -25,3 +25,4 @@ cat /dev/null > /var/log/maillog
 cat /dev/null > /var/log/secure
 cat /dev/null > /var/log/cron
 history -c
+echo > /root/.bash_history
