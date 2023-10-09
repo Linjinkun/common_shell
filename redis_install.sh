@@ -157,7 +157,7 @@ EOF
     sleep 2
     
     if [ -z "$PASSWORD" ]; then
-        redis-cli -a INFO Server 2> /dev/null
+        redis-cli INFO Server 2> /dev/null
     else
         redis-cli -a $PASSWORD INFO Server 2> /dev/null
     fi
