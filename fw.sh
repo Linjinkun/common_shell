@@ -1,11 +1,11 @@
 #! /bin/bash
- #v202207
+#v202207
 #set -euo pipefail
 #modprobe ip_conntrack_ftp
 #modprobe ip_nat_ftp
 
 init(){
-     
+    
     allow_ip=(
         117.29.164.90
         103.230.237.230
@@ -23,29 +23,12 @@ init(){
     fi
 }
 
-set_filter(){
-    for port in ${open_port[@]}
-    do
-    iptables -t raw -I PREROUTING -m addrtype --dst-type LOCAL -i $iface -p tcp --dport $port -j MARK --set-mark 1
-    #iptables -A $chain ! -o docker0 -p tcp --dport $port -j ACCEPT
-    done
-    iptables -A $chain -m mark --mark 1 -j ACCEPT
-    iptables -A $chain -m state --state ESTABLISHED,RELATED -j ACCEPT
-    iptables -A $chain -p icmp -j ACCEPT
-    iptables -A $chain -m set --match-set $ipsetname src -j ACCEPT
-    iptables -A $chain -j DROP
-    iptables -I INPUT -i $iface -j $chain 
-    if [ $hasdocker = true ]; then
-        iptables -I DOCKER-USER -i $iface -j $chain
-    fi
-}
-
 reset_ipset(){
     ipset create $ipsetname hash:net >/dev/null 2>&1
     ipset flush $ipsetname >/dev/null 2>&1
     for addr in ${allow_ip[@]}
     do
-    ipset add $ipsetname $addr
+        ipset add $ipsetname $addr
     done
 }
 
@@ -67,17 +50,36 @@ reset_ipv6_filter(){
     ip6tables -F INPUT ; ip6tables -P INPUT ACCEPT
     for port in ${open_port[@]}
     do
-    ip6tables -A $chain -p tcp --dport $port -j ACCEPT
+        ip6tables -A $chain -p tcp --dport $port -j ACCEPT
     done
     ip6tables -A $chain -m state --state ESTABLISHED,RELATED -j ACCEPT
     ip6tables -A $chain -p icmpv6 -j ACCEPT
     #ip6tables -A $chain -m set --match-set $ipsetname src -j ACCEPT
     ip6tables -A $chain -j DROP
-    ip6tables -I INPUT -i $iface -j $chain 
+    ip6tables -I INPUT -i $iface -j $chain
+}
+
+set_filter(){
+    open_port=(
+        80
+    )
+    for port in ${open_port[@]}
+    do
+        iptables -t raw -I PREROUTING -m addrtype --dst-type LOCAL -i $iface -p tcp --dport $port -j MARK --set-mark 1
+    done
+    iptables -A $chain -m mark --mark 1 -j ACCEPT
+    iptables -A $chain -m state --state ESTABLISHED,RELATED -j ACCEPT
+    iptables -A $chain -p icmp -j ACCEPT
+    iptables -A $chain -m set --match-set $ipsetname src -j ACCEPT
+    iptables -A $chain -j DROP
+    iptables -I INPUT -i $iface -j $chain
+    if [ $hasdocker = true ]; then
+        iptables -I DOCKER-USER -i $iface -j $chain
+    fi
 }
 
 init
 reset_ipset
 flush_filter
 reset_ipv6_filter
-set_filter 
+set_filter
